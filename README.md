@@ -52,7 +52,7 @@ Telegram-бот, разработанный для автоматизации к
 - Telegram Bot Token от [@BotFather](https://t.me/BotFather)
 
 ### Установка:
-```bash
+
 # Клонирование репозитория
 git clone <repository-url>
 cd volunteer-telegram-bot
