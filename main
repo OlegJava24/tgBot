@@ -1,0 +1,828 @@
+import telebot
+from telebot import types
+from telebot.util import user_link
+
+TOKEN  = '7671973352:AAFWdMUyIYi-4-st4ssXnYWG-OAMQRWqnhc'
+bot = telebot.TeleBot(TOKEN)
+
+previous_messages = {}
+
+ADMIN_IDS = [949370894, 1609574531]
+NEW_ADMINS = []  # Список для хранения ID новых администраторов
+
+content ={
+    "welcome_message": "Чат –бот Связь Поддержка Помощь, который придуман волонтерским отрядом 4:8 Лицея №2  города Брянска . Мы помогаем людям, нуждающимся в волонтерской помощи, найти полезную информацию и поддержку в трудной ситуации!",
+    "image_path": "AgACAgIAAxkBAAIRhGebz_7eEtlzKdmmlRk-HcSTVQ_hAALK5zEbnRjhSKBkD9D7CyQ0AQADAgADeQADNgQ", "poloznosti_image": "AgACAgIAAxkBAAIRnGeb0VuJeYUaTpcNNP8W3pJTVCYVAAIu9TEbBuzhSOTvS-BtTc-dAQADAgADeQADNgQ", "help_image": "AgACAgIAAxkBAAIRnmeb0WZlpvW8Nqs9Q05dKbVZ2t1EAAIv9TEbBuzhSMumBH3-mGZUAQADAgADeQADNgQ", "obr_image": "AgACAgIAAxkBAAIRoGeb0Wv0qMV1xWNFb_Zo3JqJpWBBAAIw9TEbBuzhSK8yfWwQPdQPAQADAgADeQADNgQ", "invite_image": "AgACAgIAAxkBAAIRomeb0XMP3L6noDTI27i4CevEo1M7AAIx9TEbBuzhSPIYdfJdEqiGAQADAgADeQADNgQ", "dar_image": "AgACAgIAAxkBAAIRl2eb0PJmKdqWrzK2OCrJP220dvY-AAIt9TEbBuzhSMLtdHnj8MoYAQADAgADeQADNgQ",
+    "poloznosti_message": "Хочешь регулярно узнавать что-то новое и полезное, а также проводить время в сети интернет с пользой? Подпишись на наши полезные telegram-каналы:",
+    "help_message": "Необходима помощь? \nВыберите категорию:",
+    "obr_message": "Остались вопросы? Напишите нашему куратору @lnmkhlvn",
+    "invite_message": "Нужно сходить за продуктами,  привезти лекарства или нужна другая помощь? Напишите нашему куратору @lnmkhlvn и пригласите к себе нашего волонтера!",
+    "dar_message": "Хотите чем-то поделиться с нуждающимися? \U0001F9E6\nРазместить объявление: \U0001F4BB",
+
+
+    "default":
+        {
+            "1": {"text": "Полезности\U0001F4A1", "callback_data": "1"},
+            "2": {"text": "Помощь\U0001F198", "callback_data": "2"},
+            "3": {"text": "Обратная связь\U0001F4AC", "callback_data": "3"},
+        },
+    "poloznosti":
+        {
+            "1": {"text": "Рецепты \U0001F354", "url": 'https://t.me/vkusnokakdoma32'},
+            "2": {"text": "Мода \U0001F457", "url": 'https://t.me/modnoeslovo'},
+            "3": {"text": "Добрые новости \U0001F4E2", "url": 'https://t.me/NiceJournal'},
+            "4": {"text": "Позитив \U0001F308", "url": 'https://t.me/cmexoteropia'},
+            "5": {"text": 'Отдам даром "Барахолка" \U0001F4FA \U0001F6C1 \U0001F9EF'},
+        },
+    "help":
+        {
+            "1": {"text": "Психологическая помощь \U0001F46B", "url": 'https://t.me/bryansksoc'},
+            "2": {"text": "Пригласить волонтера или курьера \U0001F3C3", "callback_data": 'button10'},
+
+        },
+    "obr":
+        {
+            "1": {"text": "Назад", "callback_data": 'back_to_main'}
+        },
+    "invite":
+        {
+
+            "1": {"text": "Назад", "callback_data": 'back_to_main'}
+        },
+    "dar":
+        {
+            "1": {"text": "Ссылка", "callback_data": 'link2'},
+            "2": {"text": "Назад", "callback_data": 'back_to_main'}
+        }
+}
+
+
+def create_inline_keyboard(button_type="poloznosti"):
+    keyboard = telebot.types.InlineKeyboardMarkup()
+
+    # Проходим по элементов в словаре content[button_type]
+    for key, button_info in content[button_type].items():
+        if "url" in button_info:  # Если есть url, создаём кнопку со ссылкой
+            button = types.InlineKeyboardButton(text=button_info["text"], url=button_info["url"])
+
+        else:
+            button = types.InlineKeyboardButton(text=button_info["text"],
+                                                callback_data=button_info.get("callback_data", "no_action"))
+        keyboard.add(button)
+
+    back_button = telebot.types.InlineKeyboardButton(text="Назад", callback_data='back_to_main')
+    keyboard.add(back_button)
+
+    return keyboard
+
+def help_keyboard(button_type="help"):
+    markup = telebot.types.InlineKeyboardMarkup(row_width=1)
+    for key, button_info in content[button_type].items():
+        if "url" in button_info:  # Если есть url, создаём кнопку со ссылкой
+            button = types.InlineKeyboardButton(text=button_info["text"], url=button_info["url"])
+        else:  # Если нет URL, создаём кнопку с callback_data
+            button = types.InlineKeyboardButton(text=button_info["text"], callback_data=button_info["callback_data"])
+        markup.add(button)
+
+    return markup
+def obr_keyboard(button_type="obr"):
+    markup = telebot.types.InlineKeyboardMarkup(row_width=1)
+
+    # Добавляем кнопки из раздела "obr" словаря
+    for key, button_info in content[button_type].items():
+        button = telebot.types.InlineKeyboardButton(text=button_info["text"],
+                                                    callback_data=button_info["callback_data"])
+        markup.add(button)
+
+    return markup
+def button_10_keyboard(button_type="invite"):
+    markup = telebot.types.InlineKeyboardMarkup(row_width=1)
+
+    # Добавляем все кнопки из секции "invite" в словаре
+    for key, button_info in content[button_type].items():
+        button = telebot.types.InlineKeyboardButton(text=button_info["text"],
+                                                    callback_data=button_info["callback_data"])
+        markup.add(button)
+
+    return markup
+def button_11_keyboard(button_type="dar"):
+    markup = telebot.types.InlineKeyboardMarkup(row_width=1)
+
+    for key, button_info in content[button_type].items():
+        button = telebot.types.InlineKeyboardButton(text=button_info["text"],
+                                                    callback_data=button_info["callback_data"])
+        markup.add(button)
+
+    return markup
+def main_menu():
+    markup = types.ReplyKeyboardMarkup( one_time_keyboard=True)
+    add_admin_button = types.KeyboardButton("Добавить администратора")
+    remove_admin_button = types.KeyboardButton("Удалить администратора")
+    update_content_button = types.KeyboardButton("Редактировать приветственное сообщение")
+    edit_messages_button = types.KeyboardButton("Редактировать другие сообщения")
+    update_image_button = types.KeyboardButton("Редактировать изображения")
+    update_button_button = types.KeyboardButton("Редактировать кнопки")
+    markup.add(add_admin_button, remove_admin_button, update_content_button, edit_messages_button, update_image_button, update_button_button)
+    return markup
+def create_keyboard(button_type="default"):
+    keyboard = types.InlineKeyboardMarkup()
+
+    for button_key, button_info in content[button_type].items():
+        keyboard.add(types.InlineKeyboardButton(button_info["text"], callback_data=button_info["callback_data"]))
+
+    return keyboard
+def back_keyboard():
+    markup = telebot.types.InlineKeyboardMarkup(row_width=1)
+    back_button = telebot.types.InlineKeyboardButton(text="Назад", callback_data='back_to_main')
+    markup.add(back_button)
+    return markup
+def admin_keyboard():
+    markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
+    add_admin_button = types.KeyboardButton("Добавить администратора")
+    remove_admin_button = types.KeyboardButton("Удалить администратора")
+    update_content_button = types.KeyboardButton("Редактировать приветственное сообщение")
+    edit_messages_button = types.KeyboardButton("Редактировать другие сообщения")
+    update_image_button = types.KeyboardButton("Редактировать изображения")
+    update_button_button = types.KeyboardButton("Редактировать кнопки")
+    markup.add(add_admin_button, remove_admin_button, update_content_button, edit_messages_button, update_image_button, update_button_button)
+
+
+    markup = telebot.types.InlineKeyboardMarkup(row_width=1)
+    back_button = telebot.types.InlineKeyboardButton(text="Назад", callback_data='back_to_main')
+    markup.add(back_button)
+
+    return markup
+def admin_main_menu_keyboard(button_type="default"):
+    markup = telebot.types.InlineKeyboardMarkup(row_width=1)
+
+    for button_key, button_info in content[button_type].items():
+        button = telebot.types.InlineKeyboardButton(text=button_info["text"],
+                                                    callback_data=button_info["callback_data"])
+        markup.add(button)
+
+    markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
+    add_admin_button = types.KeyboardButton("Добавить администратора")
+    remove_admin_button = types.KeyboardButton("Удалить администратора")
+    update_content_button = types.KeyboardButton("Редактировать приветственное сообщение")
+    edit_messages_button = types.KeyboardButton("Редактировать другие сообщения")
+    update_image_button = types.KeyboardButton("Редактировать изображения")
+    update_button_button = types.KeyboardButton("Редактировать кнопки")
+    markup.add(add_admin_button, remove_admin_button, update_content_button, edit_messages_button, update_image_button,
+               update_button_button)
+    return markup
+
+
+@bot.message_handler(commands=['start'])
+def start(message):
+    try:
+        welcome_text = content["welcome_message"].format(name=message.from_user.first_name)
+
+        # Проверка, есть ли сохраненное изображение
+        if "image_path" in content and content["image_path"] is not None:
+            # Используем идентификатор файла для отправки изображения
+            bot.send_photo(message.chat.id, content["image_path"], caption=welcome_text, reply_markup=create_keyboard())
+        else:
+            bot.send_message(message.chat.id, welcome_text,
+                             reply_markup=create_keyboard())  # Отправляем приветственное сообщение без картинки
+    except Exception as e:
+        print(f"Ошибка при отправке приветственного сообщения: {e}")
+        bot.send_message(message.chat.id, "Произошла ошибка. Пожалуйста, попробуйте позже.")
+
+@bot.message_handler(func=lambda message: message.text == "Редактировать приветственное сообщение")
+def ask_for_update_content(message):
+    bot.send_message(message.chat.id, "Что вы хотите обновить? (1 - Приветственное сообщение, 2 - Изображение)", reply_markup=admin_keyboard())
+
+
+@bot.message_handler(func=lambda message: message.text == "Редактировать приветственное сообщение")
+def ask_for_update_content(message):
+    bot.send_message(message.chat.id, "Что вы хотите обновить? (1 - Приветственное сообщение, 2 - Изображение)", reply_markup=admin_keyboard())
+
+
+
+@bot.message_handler(func=lambda message: message.chat.id in ADMIN_IDS + NEW_ADMINS)
+def handle_admin_commands(message):
+    if message.text == "1":
+        bot.send_message(message.chat.id, "Введите новое приветственное сообщение:", reply_markup=admin_keyboard())
+        bot.register_next_step_handler(message, update_welcome_message)
+    elif message.text == "2":
+        bot.send_message(message.chat.id, "Выберите, что вы хотите сделать: 1 - Поменять изображение, 2 - Удалить изображение", reply_markup=admin_keyboard())
+        bot.register_next_step_handler(message, choose_move)
+    elif message.text == "Добавить администратора":
+        bot.send_message(message.chat.id, "Введите ID пользователя, которого хотите сделать администратором:", reply_markup=admin_keyboard())
+        bot.register_next_step_handler(message, add_admin)
+    elif message.text == "Удалить администратора":
+        bot.send_message(message.chat.id, "Введите ID пользователя, которого хотите удалить из администраторов:", reply_markup=admin_keyboard())
+        bot.register_next_step_handler(message, remove_admin)
+    elif message.text == "Редактировать изображения":
+        bot.send_message(message.chat.id, "Выберите, что вы хотите сделать: 1 - Поменять изображение, 2 - Удалить изображение", reply_markup=admin_keyboard())
+        bot.register_next_step_handler(message, choose_move_image)
+    elif message.text == "Редактировать другие сообщения":
+        bot.send_message(message.chat.id,"Какое сообщение вы хотите редактировать? (1 - Полезности, 2 - Помощь, 3 - Обратная связь, 4 - Пригласить волонтёра, 5 - Отдать даром)", reply_markup=admin_keyboard())
+        bot.register_next_step_handler(message, choose_message_to_edit)
+    elif message.text == "Редактировать кнопки":
+        bot.send_message(message.chat.id, "В каком сообщении вы хотите редактировать? (1 - Приветственное сообщение, 2 - Полезности, 3 - Помощь, 4 - Обратная связь, 5 - Пригласить волонтёра, 6 - Отдать даром)", reply_markup=admin_keyboard())
+        bot.register_next_step_handler(message, choose_message_button_update)
+
+
+
+def choose_message_button_update(message):
+    if message.text == "1":
+        bot.send_message(message.chat.id, "Что именно вы хотите сделать? (1 - Изменить текст в кнопке)", reply_markup=main_menu())
+        bot.register_next_step_handler(message, update_start_button)
+    elif message.text == "2":
+        bot.send_message(message.chat.id, "Что именно вы хотите сделать? (1 - Изменить текст в кнопке)", reply_markup=main_menu())
+        bot.register_next_step_handler(message, update_poloznosti_button)
+    elif message.text == "3":
+        bot.send_message(message.chat.id, "Что именно вы хотите сделать? (1 - Изменить текст в кнопке)", reply_markup=main_menu())
+        bot.register_next_step_handler(message, update_help_button)
+    elif message.text == "4":
+        bot.send_message(message.chat.id, "Что именно вы хотите сделать? (1 - Изменить текст в кнопке)", reply_markup=main_menu())
+        bot.register_next_step_handler(message, update_obr_button)
+    elif message.text == "5":
+        bot.send_message(message.chat.id, "Что именно вы хотите сделать? (1 - Изменить текст в кнопке)", reply_markup=main_menu())
+        bot.register_next_step_handler(message, update_invite_button)
+    elif message.text == "6":
+        bot.send_message(message.chat.id,"Что именно вы хотите сделать? (1 - Изменить текст в кнопке)", reply_markup=main_menu())
+        bot.register_next_step_handler(message, update_dar_button)
+
+def choose_move(message):
+    if message.text == "1":
+        bot.send_message(message.chat.id, "Пожалуйста, отправьте новое изображение", reply_markup=admin_keyboard())
+        bot.register_next_step_handler(message, update_image)
+    elif message.text == "2":
+        bot.send_message(message.chat.id, "Хотите удалить текущее изображение перед загрузкой нового? (да/нет)", reply_markup=admin_keyboard())
+        bot.register_next_step_handler(message, confirm_delete_image)
+
+def choose_move_image(message):
+    if message.text == "1":
+        bot.send_message(message.chat.id, "Какое изображение Вы хотите редактировать? (1 - Полезности, 2 - Помощь, 3 - Обратная связь, 4 - Пригласить волонтёра, 5 - Отдать даром)", reply_markup=admin_keyboard())
+        bot.register_next_step_handler(message, choose_image_to_edit)
+    elif message.text == "2":
+        bot.send_message(message.chat.id, "Какое изображение Вы хотите удалить? (1 - Полезности, 2 - Помощь, 3 - Обратная связь, 4 - Пригласить волонтёра, 5 - Отдать даром)", reply_markup=admin_keyboard())
+        bot.register_next_step_handler(message, choose_image_to_delete)
+
+def confirm_delete_image(message):
+    if message.text == "да":
+        delete_image(message)
+    elif message.text == "нет":
+        start(message)
+
+
+
+def update_start_button(message):
+    if message.text == "1":
+        bot.send_message(message.chat.id, "Введите порядковый номер, для которой хотите изменить текст:")
+        bot.register_next_step_handler(message, update_start_button_text)
+ #   elif message.text == "2":
+  #      bot.send_message(message.chat.id, "Введите текст для новой кнопки:")
+   #     bot.register_next_step_handler(message, add_start_button_text)
+
+def update_poloznosti_button(message):
+    if message.text == "1":
+        bot.send_message(message.chat.id, "Введите порядковый номер, для которой хотите изменить текст:")
+        bot.register_next_step_handler(message, update_poloznosti_button_text)
+
+def update_help_button(message):
+    if message.text == "1":
+        bot.send_message(message.chat.id, "Введите порядковый номер, для которой хотите изменить текст:")
+        bot.register_next_step_handler(message, update_help_button_text)
+
+def update_obr_button(message):
+    if message.text == "1":
+        bot.send_message(message.chat.id, "Введите порядковый номер, для которой хотите изменить текст:")
+        bot.register_next_step_handler(message, update_obr_button_text)
+
+def update_invite_button(message):
+    if message.text == "1":
+        bot.send_message(message.chat.id, "Введите порядковый номер, для которой хотите изменить текст:")
+        bot.register_next_step_handler(message, update_invite_button_text)
+
+def update_dar_button(message):
+    if message.text == "1":
+        bot.send_message(message.chat.id, "Введите порядковый номер, для которой хотите изменить текст:")
+        bot.register_next_step_handler(message, update_dar_button_text)
+
+
+
+def update_start_button_text(message):
+    button_key = message.text.strip()
+    bot.send_message(message.chat.id, f"Введите новый текст для кнопки '{button_key}':")
+    bot.register_next_step_handler(message, lambda msg: change_button_start_text(msg, button_key))
+
+def update_poloznosti_button_text(message):
+    button_key = message.text.strip()
+    bot.send_message(message.chat.id, f"Введите новый текст для кнопки '{button_key}':")
+    bot.register_next_step_handler(message, lambda msg: change_button_poloznosti_text(msg, button_key))
+
+def update_help_button_text(message):
+    button_key = message.text.strip()
+    bot.send_message(message.chat.id, f"Введите новый текст для кнопки '{button_key}':")
+    bot.register_next_step_handler(message, lambda msg: change_button_help_text(msg, button_key))
+
+def update_obr_button_text(message):
+    button_key = message.text.strip()
+    bot.send_message(message.chat.id, f"Введите новый текст для кнопки '{button_key}':")
+    bot.register_next_step_handler(message, lambda msg: change_button_obr_text(msg, button_key))
+
+def update_invite_button_text(message):
+    button_key = message.text.strip()
+    bot.send_message(message.chat.id, f"Введите новый текст для кнопки '{button_key}':")
+    bot.register_next_step_handler(message, lambda msg: change_button_invite_text(msg, button_key))
+
+def update_dar_button_text(message):
+    button_key = message.text.strip()
+    bot.send_message(message.chat.id, f"Введите новый текст для кнопки '{button_key}':")
+    bot.register_next_step_handler(message, lambda msg: change_button_dar_text(msg, button_key))
+
+
+
+
+
+#def add_start_button_text(message):
+ #   button_key = message.text.strip()
+#
+    # Проверяем, что введённая строка не пустая
+ #   if not button_key:
+  #     bot.send_message(message.chat.id, "Пожалуйста, введите текст для кнопки.")
+   #     return
+
+    # Добавляем новую кнопку в конец списка кнопок для приветственного сообщения
+   # next_index = len(content["default"]) + 1
+
+    # Добавляем новую кнопку в словарь кнопок для приветственного сообщения
+    #content["default"][next_index] = {"text": button_key, "callback_data": f"{next_index}"}
+
+    # Сообщаем пользователю об успехе
+    #bot.send_message(message.chat.id,
+     #                f"Новая кнопка '{button_key}' была успешно добавлена.")
+
+
+
+
+
+def change_button_start_text(message, button_key):
+    new_text = message.text.strip()
+
+    # Обновление текста кнопки
+    if button_key in content["default"]:
+        content["default"][button_key]["text"] = new_text
+        bot.send_message(message.chat.id, f"Текст кнопки '{button_key}' успешно изменён на '{new_text}'.")
+    else:
+        bot.send_message(message.chat.id, f"Кнопка '{button_key}' не найдена.")
+
+def change_button_poloznosti_text(message, button_key):
+    new_text = message.text.strip()
+
+    # Проверяем, существует ли button_key в "poloznosti"
+    if button_key in content["poloznosti"]:
+        content["poloznosti"][button_key]["text"] = new_text
+        bot.send_message(message.chat.id, f"Текст кнопки '{button_key}' успешно изменён на '{new_text}'.")
+    else:
+        bot.send_message(message.chat.id, f"Кнопка '{button_key}' не найдена.")
+
+def change_button_help_text(message, button_key):
+    new_text = message.text.strip()
+
+    # Проверяем, существует ли button_key в "poloznosti"
+    if button_key in content["help"]:
+        content["help"][button_key]["text"] = new_text
+        bot.send_message(message.chat.id, f"Текст кнопки '{button_key}' успешно изменён на '{new_text}'.")
+    else:
+        bot.send_message(message.chat.id, f"Кнопка '{button_key}' не найдена.")
+
+def change_button_obr_text(message, button_key):
+    new_text = message.text.strip()
+
+    # Проверяем, существует ли button_key в "poloznosti"
+    if button_key in content["obr"]:
+        content["obr"][button_key]["text"] = new_text
+        bot.send_message(message.chat.id, f"Текст кнопки '{button_key}' успешно изменён на '{new_text}'.")
+    else:
+        bot.send_message(message.chat.id, f"Кнопка '{button_key}' не найдена.")
+
+def change_button_invite_text(message, button_key):
+    new_text = message.text.strip()
+
+    # Проверяем, существует ли button_key в "poloznosti"
+    if button_key in content["invite"]:
+        content["invite"][button_key]["text"] = new_text
+        bot.send_message(message.chat.id, f"Текст кнопки '{button_key}' успешно изменён на '{new_text}'.")
+    else:
+        bot.send_message(message.chat.id, f"Кнопка '{button_key}' не найдена.")
+
+def change_button_dar_text(message, button_key):
+    new_text = message.text.strip()
+
+    # Проверяем, существует ли button_key в "poloznosti"
+    if button_key in content["dar"]:
+        content["dar"][button_key]["text"] = new_text
+        bot.send_message(message.chat.id, f"Текст кнопки '{button_key}' успешно изменён на '{new_text}'.")
+    else:
+        bot.send_message(message.chat.id, f"Кнопка '{button_key}' не найдена.")
+
+
+
+def choose_image_to_edit(message):
+    if message.text == "1":
+        bot.send_message(message.chat.id, "Пожалуйста, отправьте новое изображение для сообщения о полезностях:", reply_markup=admin_keyboard())
+        bot.register_next_step_handler(message, update_poloznosti_image)
+    elif message.text == "2":
+        bot.send_message(message.chat.id, "Пожалуйста, отправьте новое изображение для сообщения о помощи:", reply_markup=admin_keyboard())
+        bot.register_next_step_handler(message, update_help_image)
+    elif message.text == "3":
+        bot.send_message(message.chat.id, "Пожалуйста, отправьте новое изображение для сообщения об обратной связи:", reply_markup=admin_keyboard())
+        bot.register_next_step_handler(message, update_obr_image)
+    elif message.text == "4":
+        bot.send_message(message.chat.id, "Пожалуйста, отправьте новое изображение для сообщения о приглашении волонтёра:", reply_markup=admin_keyboard())
+        bot.register_next_step_handler(message, update_invite_image)
+    elif message.text == "5":
+        bot.send_message(message.chat.id, "Пожалуйста, отправьте новое изображение для сообщения:", reply_markup=admin_keyboard())
+        bot.register_next_step_handler(message, update_dar_image)
+
+def choose_image_to_delete(message):
+    if message.text == "1":
+        bot.send_message(message.chat.id, "Хотите удалить текущее изображение перед загрузкой нового? (да/нет)", reply_markup=admin_keyboard())
+        bot.register_next_step_handler(message, confirm_delete_poloznosti_image)
+    elif message.text == "2":
+        bot.send_message(message.chat.id, "Хотите удалить текущее изображение перед загрузкой нового? (да/нет)", reply_markup=admin_keyboard())
+        bot.register_next_step_handler(message, confirm_delete_help_image)
+    elif message.text == "3":
+        bot.send_message(message.chat.id, "Хотите удалить текущее изображение перед загрузкой нового? (да/нет)", reply_markup=admin_keyboard())
+        bot.register_next_step_handler(message, confirm_delete_obr_image)
+    elif message.text == "4":
+        bot.send_message(message.chat.id, "Хотите удалить текущее изображение перед загрузкой нового? (да/нет)", reply_markup=admin_keyboard())
+        bot.register_next_step_handler(message, confirm_delete_invite_image)
+    elif message.text == "5":
+        bot.send_message(message.chat.id, "Хотите удалить текущее изображение перед загрузкой нового? (да/нет)", reply_markup=admin_keyboard())
+        bot.register_next_step_handler(message, confirm_delete_dar_image)
+
+
+
+def confirm_delete_poloznosti_image(message):
+    if message.text == "да":
+        delete_poloznosti_image(message)
+    elif message.text == "нет":
+        start(message)
+
+def confirm_delete_help_image(message):
+    if message.text == "да":
+        delete_help_image(message)
+    elif message.text == "нет":
+        start(message)
+
+def confirm_delete_obr_image(message):
+    if message.text == "да":
+        delete_obr_image(message)
+    elif message.text == "нет":
+        start(message)
+
+def confirm_delete_invite_image(message):
+    if message.text == "да":
+        delete_invite_image(message)
+    elif message.text == "нет":
+        start(message)
+
+def confirm_delete_dar_image(message):
+    if message.text == "да":
+        delete_dar_image(message)
+    elif message.text == "нет":
+        start(message)
+
+
+
+def update_help_image(message):
+    try:
+        content["help_image"] = message.photo[-1].file_id  # Сохраняем ID изображения
+        bot.send_message(message.chat.id, "Изображение для сообщения обновлено.", reply_markup=admin_keyboard())
+
+    except Exception as e:
+        print(f"Ошибка при обновлении изображения: {e}")
+        bot.send_message(message.chat.id, "Произошла ошибка при обновлении изображения.", reply_markup=admin_keyboard())
+
+def update_obr_image(message):
+    try:
+        content["obr_image"] = message.photo[-1].file_id  # Сохраняем ID изображения
+        bot.send_message(message.chat.id, "Изображение для сообщения обновлено.", reply_markup=admin_keyboard())
+    except Exception as e:
+        print(f"Ошибка при обновлении изображения: {e}")
+        bot.send_message(message.chat.id, "Произошла ошибка при обновлении изображения.", reply_markup=admin_keyboard())
+
+def update_invite_image(message):
+    try:
+        content["invite_image"] = message.photo[-1].file_id  # Сохраняем ID изображения
+        bot.send_message(message.chat.id, "Изображение для сообщения обновлено.", reply_markup=admin_keyboard())
+    except Exception as e:
+        print(f"Ошибка при обновлении изображения: {e}")
+        bot.send_message(message.chat.id, "Произошла ошибка при обновлении изображения.", reply_markup=admin_keyboard())
+
+def update_dar_image(message):
+    try:
+        content["dar_image"] = message.photo[-1].file_id  # Сохраняем ID изображения
+        bot.send_message(message.chat.id, "Изображение для сообщения обновлено.", reply_markup=admin_keyboard())
+    except Exception as e:
+        print(f"Ошибка при обновлении изображения: {e}")
+        bot.send_message(message.chat.id, "Произошла ошибка при обновлении изображения.", reply_markup=admin_keyboard())
+
+def update_poloznosti_image(message):
+    try:
+        content["poloznosti_image"] = message.photo[-1].file_id  # Сохраняем ID изображения
+        bot.send_message(message.chat.id, "Изображение для сообщения о полезностях обновлено.", reply_markup=admin_keyboard())
+    except Exception as e:
+        print(f"Ошибка при обновлении изображения: {e}")
+        bot.send_message(message.chat.id, "Произошла ошибка при обновлении изображения.", reply_markup=admin_keyboard())
+
+
+
+
+def delete_image(message):
+    try:
+        if "image_path" in content:
+            content["image_path"] = None  # Очистка значения по ключу "image_path"
+            bot.send_message(message.chat.id, "Изображение удалено успешно!", reply_markup=admin_keyboard())
+
+        else:
+            bot.send_message(message.chat.id, "Изображение не найдено.", reply_markup=admin_keyboard())
+    except Exception as e:
+        print(f"Ошибка при удалении изображения: {e}")
+        bot.send_message(message.chat.id, "Произошла ошибка при удалении изображения.", reply_markup=admin_keyboard())
+
+def delete_poloznosti_image(message):
+    try:
+        if "poloznosti_image" in content:
+            content["poloznosti_image"] = None  # Очистка значения по ключу "image_path"
+            bot.send_message(message.chat.id, "Изображение удалено успешно!", reply_markup=admin_keyboard())
+
+        else:
+            bot.send_message(message.chat.id, "Изображение не найдено.", reply_markup=admin_keyboard())
+    except Exception as e:
+        print(f"Ошибка при удалении изображения: {e}")
+        bot.send_message(message.chat.id, "Произошла ошибка при удалении изображения.", reply_markup=admin_keyboard())
+
+def delete_help_image(message):
+    try:
+        if "help_image" in content:
+            content["help_image"] = None  # Очистка значения по ключу "image_path"
+            bot.send_message(message.chat.id, "Изображение удалено успешно!", reply_markup=admin_keyboard())
+
+        else:
+            bot.send_message(message.chat.id, "Изображение не найдено.", reply_markup=admin_keyboard())
+    except Exception as e:
+        print(f"Ошибка при удалении изображения: {e}")
+        bot.send_message(message.chat.id, "Произошла ошибка при удалении изображения.", reply_markup=admin_keyboard())
+
+def delete_obr_image(message):
+    try:
+        if "obr_image" in content:
+            content["obr_image"] = None  # Очистка значения по ключу "image_path"
+            bot.send_message(message.chat.id, "Изображение удалено успешно!", reply_markup=admin_keyboard())
+
+        else:
+            bot.send_message(message.chat.id, "Изображение не найдено.", reply_markup=admin_keyboard())
+    except Exception as e:
+        print(f"Ошибка при удалении изображения: {e}")
+        bot.send_message(message.chat.id, "Произошла ошибка при удалении изображения.", reply_markup=admin_keyboard())
+
+def delete_invite_image(message):
+    try:
+        if "invite_image" in content:
+            content["invite_image"] = None  # Очистка значения по ключу "image_path"
+            bot.send_message(message.chat.id, "Изображение удалено успешно!", reply_markup=admin_keyboard())
+
+        else:
+            bot.send_message(message.chat.id, "Изображение не найдено.", reply_markup=admin_keyboard())
+    except Exception as e:
+        print(f"Ошибка при удалении изображения: {e}")
+        bot.send_message(message.chat.id, "Произошла ошибка при удалении изображения.", reply_markup=admin_keyboard())
+
+def delete_dar_image(message):
+    try:
+        if "dar_image" in content:
+            content["dar_image"] = None  # Очистка значения по ключу "image_path"
+            bot.send_message(message.chat.id, "Изображение удалено успешно!", reply_markup=admin_keyboard())
+
+        else:
+            bot.send_message(message.chat.id, "Изображение не найдено.", reply_markup=admin_keyboard())
+    except Exception as e:
+        print(f"Ошибка при удалении изображения: {e}")
+        bot.send_message(message.chat.id, "Произошла ошибка при удалении изображения.", reply_markup=admin_keyboard())
+
+@bot.callback_query_handler(func=lambda call: call.data == '1')
+def show_utils(call):
+    try:
+        bot.answer_callback_query(call.id)  # Подтверждаем нажатие кнопки
+        # Проверка, есть ли изображение для полезностей
+        if content["poloznosti_image"]:
+            bot.send_photo(call.message.chat.id, content["poloznosti_image"], caption=content["poloznosti_message"], reply_markup=create_inline_keyboard())
+        else:
+            bot.send_message(call.message.chat.id, content["poloznosti_message"], reply_markup=create_inline_keyboard())
+    except Exception as e:
+        print(f"Ошибка при обработке кнопки 'Полезности': {e}")
+        bot.send_message(call.message.chat.id, "Произошла ошибка при попытке показать полезности.")
+
+@bot.callback_query_handler(func=lambda call: call.data == '2')
+def help_handler(call):
+    try:
+        bot.answer_callback_query(call.id)  # Подтверждаем нажатие кнопки
+        if content["help_image"]:
+            bot.send_photo(call.message.chat.id, content["help_image"], caption=content["help_message"], reply_markup=help_keyboard())
+        else:
+            bot.send_message(call.message.chat.id, content["help_message"], reply_markup=help_keyboard())
+    except Exception as e:
+        print(f"Ошибка при обработке кнопки 'Помощь': {e}")
+        bot.send_message(call.message.chat.id, "Произошла ошибка при попытке показать помощь.")
+
+
+@bot.callback_query_handler(func=lambda call: call.data == '3')
+def feedback_handler(call):
+    try:
+        bot.answer_callback_query(call.id)  # Подтверждаем нажатие кнопки
+        if content["obr_image"]:
+            bot.send_photo(call.message.chat.id, content["obr_image"], caption=content["obr_message"],
+                           reply_markup=obr_keyboard())
+        else:
+            bot.send_message(call.message.chat.id, content["obr_message"], reply_markup=obr_keyboard())
+
+        @bot.message_handler()
+        def handle_feedback_message(message):
+            process_feedback(message)
+    except Exception as e:
+        print(f"Ошибка при обработке кнопки 'Обратная связь': {e}")
+        bot.send_message(call.message.chat.id, "Произошла ошибка при попытке показать обратную связь.")
+
+
+
+
+@bot.callback_query_handler(func=lambda call: call.data == 'button10')
+def invite_handler(call):
+    try:
+        bot.answer_callback_query(call.id)  # Подтверждаем нажатие кнопки
+        if content["invite_image"]:
+            bot.send_photo(call.message.chat.id, content["invite_image"], caption=content["invite_message"],
+                           reply_markup=button_10_keyboard())
+        else:
+            bot.send_message(call.message.chat.id, content["invite_message"], reply_markup=button_10_keyboard())
+
+
+    except Exception as e:
+        print(f"Ошибка при обработке кнопки: {e}")
+        bot.send_message(call.message.chat.id, "Произошла ошибка при попытке показать сообщение.")
+
+@bot.callback_query_handler(func=lambda call: call.data == 'button11')
+def dar_handler(call):
+    try:
+        bot.answer_callback_query(call.id)  # Подтверждаем нажатие кнопки
+        if content["dar_image"]:
+            bot.send_photo(call.message.chat.id, content["dar_image"], caption=content["dar_message"],
+                           reply_markup=button_11_keyboard())
+        else:
+            bot.send_message(call.message.chat.id, content["dar_message"], reply_markup=button_11_keyboard())
+
+
+    except Exception as e:
+        print(f"Ошибка при обработке кнопки: {e}")
+        bot.send_message(call.message.chat.id, "Произошла ошибка при попытке показать сообщение.")
+
+
+
+def choose_message_to_edit(message):
+    if message.text == "1":
+        bot.send_message(message.chat.id, "Введите новое сообщение о полезностях:", reply_markup=main_menu())
+        bot.register_next_step_handler(message, update_poloznosti_message)
+    elif message.text == "2":
+        bot.send_message(message.chat.id, "Введите новое сообщение :", reply_markup=main_menu())
+        bot.register_next_step_handler(message, update_help_message)
+    elif message.text == "3":
+        bot.send_message(message.chat.id, "Введите новое сообщение:", reply_markup=main_menu())
+        bot.register_next_step_handler(message, update_obr_message)
+    elif message.text == "4":
+        bot.send_message(message.chat.id, "Введите новое сообщение:", reply_markup=main_menu())
+        bot.register_next_step_handler(message, update_invite_message)
+    elif message.text == "5":
+        bot.send_message(message.chat.id, "Введите новое сообщение:", reply_markup=main_menu())
+        bot.register_next_step_handler(message, update_dar_message)
+    else:
+        bot.send_message(message.chat.id, "Пожалуйста, выберите корректный вариант.", reply_markup=main_menu())
+
+def update_welcome_message(message):
+    new_message = message.text
+    content["welcome_message"] = new_message
+    bot.send_message(message.chat.id, "Приветственное сообщение обновлено!", reply_markup=admin_keyboard())
+
+def update_help_message(message):
+    new_message = message.text
+    content["help_message"] = new_message
+    bot.send_message(message.chat.id, "Сообщение обновлено!", reply_markup=admin_keyboard())
+
+def update_obr_message(message):
+    new_message = message.text
+    content["obr_message"] = new_message
+    bot.send_message(message.chat.id, "Сообщение обновлено!", reply_markup=admin_keyboard())
+
+def update_poloznosti_message(message):
+    new_message = message.text
+    content["poloznosti_message"] = new_message
+    bot.send_message(message.chat.id, "Сообщение обновлено!", reply_markup=admin_keyboard())
+
+def update_invite_message(message):
+    new_message = message.text
+    content["invite_message"] = new_message
+    bot.send_message(message.chat.id, "Сообщение обновлено!", reply_markup=admin_keyboard())
+
+def update_dar_message(message):
+    new_message = message.text
+    content["dar_message"] = new_message
+    bot.send_message(message.chat.id, "Сообщение обновлено!", reply_markup=admin_keyboard())
+
+
+
+def update_image(message):
+    try:
+        content["image_path"] = message.photo[-1].file_id  # Сохраняем ID изображения
+        bot.send_message(message.chat.id, "Изображение для сообщения обновлено.", reply_markup=admin_keyboard())
+
+    except Exception as e:
+        print(f"Ошибка при обновлении изображения: {e}")
+        bot.send_message(message.chat.id, "Произошла ошибка при обновлении изображения.", reply_markup=admin_keyboard())
+
+@bot.message_handler(content_types=['photo'])
+def handle_photo(message):
+    try:
+        # Получаем идентификатор изображения
+        file_id = message.photo[-1].file_id  # Получаем ID самого большого изображения
+        bot.send_message(message.chat.id, f"Ваш file_id: {file_id}")
+        print(f"Полученный file_id: {file_id}")
+    except Exception as e:
+        print(f"Ошибка: {e}")
+        bot.send_message(message.chat.id, "Произошла ошибка при получении file_id.")
+
+def add_admin(message):
+    try:
+        new_admin_id = int(message.text)
+        if new_admin_id not in ADMIN_IDS and new_admin_id not in NEW_ADMINS:
+            NEW_ADMINS.append(new_admin_id)
+            bot.send_message(message.chat.id, f"Пользователь {new_admin_id} добавлен как новый администратор.", reply_markup=admin_keyboard())
+
+            # Предоставление нового администратору кнопок
+            bot.send_message(new_admin_id, "Вы стали администратором!", reply_markup=main_menu())
+
+        else:
+            bot.send_message(message.chat.id, "Этот пользователь уже является администратором.", reply_markup=admin_keyboard())
+    except ValueError:
+        bot.send_message(message.chat.id, "Пожалуйста, введите корректный ID пользователя.", reply_markup=admin_keyboard())
+
+def remove_admin(message):
+    try:
+        admin_id_to_remove = int(message.text)
+        if admin_id_to_remove in NEW_ADMINS:
+            NEW_ADMINS.remove(admin_id_to_remove)
+            bot.send_message(message.chat.id, f"Пользователь {admin_id_to_remove} был удалён из администраторов.", reply_markup=admin_keyboard())
+            bot.send_message(admin_id_to_remove, "Вы были удалены из администраторов.",reply_markup=types.ReplyKeyboardRemove())
+        else:
+            bot.send_message(message.chat.id, "Данный пользователь не является администратором.", reply_markup=admin_keyboard())
+    except ValueError:
+        bot.send_message(message.chat.id, "Пожалуйста, введите корректный ID пользователя.", reply_markup=admin_keyboard())
+
+@bot.callback_query_handler(func=lambda call: True)
+def callback_query(call):
+    if call.data == 'back_to_main':
+        welcome_text = content["welcome_message"].format(name=call.from_user.first_name)
+
+        # Проверка, есть ли сохраненное изображение
+        if "image_path" in content and content["image_path"] is not None:
+            # Используем идентификатор файла для отправки изображения
+            bot.send_photo(call.message.chat.id, content["image_path"], caption=welcome_text, reply_markup=create_keyboard())
+        else:
+            bot.send_message(call.message.chat.id, welcome_text, reply_markup=create_keyboard())
+    elif call.data == 'back_to_admin_main':
+        welcome_text = content["welcome_message"].format(name=call.from_user.first_name)
+
+        # Проверка, есть ли сохраненное изображение
+        if "image_path" in content and content["image_path"] is not None:
+            # Используем идентификатор файла для отправки изображения
+            bot.send_photo(call.message.chat.id, content["image_path"], caption=welcome_text, reply_markup=create_keyboard())
+        else:
+            bot.send_message(call.message.chat.id, welcome_text, reply_markup=create_keyboard())
+
+def process_feedback(message):
+     user_feedback = message.text
+
+     if message.from_user.username:
+        user_link = f'https://t.me/{message.from_user.username}'
+     else:
+        user_link = 'Имя пользователя недоступно'
+
+        your_chat_id = '-1002310400940'
+
+        bot.send_message(your_chat_id,f"Сообщение от пользователя {message.from_user.first_name} ({user_link}): {user_feedback}")
+
+        markup = telebot.types.InlineKeyboardMarkup(row_width=1)
+        back_button = telebot.types.InlineKeyboardButton(text="Меню", callback_data='back_to_main')
+        bot.send_message(message.chat.id,"Спасибо за ваше сообщение! \U0001F609 С вами свяжутся в ближайшее время. \U0001F4AC\U0001F4AC\U0001F4AC", reply_markup=markup)
+
+if __name__ == "__main__":
+    try:
+        bot.polling(none_stop=True)
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
